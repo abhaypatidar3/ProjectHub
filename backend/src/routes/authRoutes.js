@@ -3,18 +3,19 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
+const { registerValidation, loginValidation, validate } = require('../middleware/validators');
 
 // Generate JWT Token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env. JWT_SECRET, {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d'
   });
 };
 
-// Register new user
-router.post('/register', async (req, res) => {
+// Register new user - WITH VALIDATION
+router.post('/register', registerValidation, validate, async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req. body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -49,8 +50,8 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login user
-router.post('/login', async (req, res) => {
+// Login user - WITH VALIDATION
+router.post('/login', loginValidation, validate, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -71,7 +72,7 @@ router.post('/login', async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      user:  {
+      user: {
         id: user._id,
         name: user.name,
         email: user.email,
@@ -84,7 +85,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Get current user
-router.get('/me', auth, async (req, res) => {
+router. get('/me', auth, async (req, res) => {
   try {
     res.json({
       user: {
@@ -105,12 +106,12 @@ router.post('/create-admin', async (req, res) => {
     const { name, email, password, adminSecret } = req.body;
 
     // Check admin secret (for security)
-    if (adminSecret !== process.env.ADMIN_SECRET) {
+    if (adminSecret !== process. env.ADMIN_SECRET) {
       return res.status(403).json({ message: 'Invalid admin secret' });
     }
 
     // Check if admin already exists
-    const existingUser = await User.findOne({email});
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
