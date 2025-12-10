@@ -4,20 +4,12 @@ const Client = require('../models/Client');
 const upload = require('../middleware/upload');
 const processImage = require('../middleware/imageProcessor');
 const { auth, isAdmin } = require('../middleware/auth');
-const { getUploadUrl } = require('../utils/urlHelper');
 
 // Get all clients (public)
 router.get('/', async (req, res) => {
   try {
     const clients = await Client.find().sort({ createdAt: -1 }).lean();
-    
-    // Convert image paths to absolute URLs
-    const clientsWithAbsoluteUrls = clients.map(client => ({
-      ...client,
-      image: getUploadUrl(client.image)
-    }));
-    
-    res.json(clientsWithAbsoluteUrls);
+    res.json(clients);
   } catch (error) {
     res.status(500).json({ message: error. message });
   }
@@ -30,10 +22,6 @@ router.get('/:id', async (req, res) => {
     if (!client) {
       return res.status(404).json({ message: 'Client not found' });
     }
-    
-    // Convert image path to absolute URL
-    client.image = getUploadUrl(client.image);
-    
     res.json(client);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -45,24 +33,19 @@ router.post('/', auth, isAdmin, upload.single('image'), processImage, async (req
   try {
     const { name, description, designation } = req.body;
 
-    if (! req.file) {
-      return res.status(400).json({ message: 'Image is required' });
+    if (!req.cloudinaryResult) {
+      return res. status(400).json({ message: 'Image upload failed' });
     }
 
     const client = new Client({
       name,
       description,
       designation,
-      image: `/uploads/${req.file.filename}`
+      image: req.cloudinaryResult. url
     });
 
     const newClient = await client.save();
-    
-    // Return with absolute URL
-    const responseClient = newClient.toObject();
-    responseClient.image = getUploadUrl(responseClient.image);
-    
-    res.status(201).json(responseClient);
+    res.status(201).json(newClient);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -74,8 +57,8 @@ router.put('/:id', auth, isAdmin, upload.single('image'), processImage, async (r
     const { name, description, designation } = req.body;
     const updateData = { name, description, designation };
 
-    if (req.file) {
-      updateData.image = `/uploads/${req.file.filename}`;
+    if (req.cloudinaryResult) {
+      updateData. image = req.cloudinaryResult. url;
     }
 
     const client = await Client.findByIdAndUpdate(
@@ -88,9 +71,6 @@ router.put('/:id', auth, isAdmin, upload.single('image'), processImage, async (r
       return res. status(404).json({ message: 'Client not found' });
     }
 
-    // Return with absolute URL
-    client.image = getUploadUrl(client.image);
-    
     res.json(client);
   } catch (error) {
     res.status(400).json({ message: error. message });

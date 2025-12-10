@@ -1,38 +1,41 @@
-const sharp = require('sharp');
-const path = require('path');
-const fs = require('fs');
+const { uploadToCloudinary } = require('../utils/cloudinaryUpload');
 
 const processImage = async (req, res, next) => {
-  if (!req.file) {
+  if (! req.file) {
     return next();
   }
 
   try {
-    const uploadsDir = path.join(__dirname, '../../uploads');
-    
-    // Just move the file, no processing
-    const finalFilename = Date.now() + '-' + req.file.originalname;
-    const finalPath = path. join(uploadsDir, finalFilename);
+    console.log('\n📸 ===== IMAGE UPLOAD STARTED =====');
+    console.log('📁 Original file:', req.file.originalname);
+    console.log('📏 Original size:', (req.file.size / 1024).toFixed(2), 'KB');
 
-    // Simply rename/move the file
-    fs.renameSync(req.file.path, finalPath);
+    // Upload to Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer);
 
-    // Update req.file
-    req.file.path = finalPath;
-    req.file. filename = finalFilename;
+    // Attach Cloudinary result to request
+    req.cloudinaryResult = {
+      url: result.secure_url,
+      publicId: result.public_id,
+      width: result. width,
+      height: result. height,
+      format: result. format,
+      size: result.bytes
+    };
 
-    console.log('✅ Image uploaded:', finalFilename);
+    console.log('✅ Processed dimensions:', result.width, 'x', result.height);
+    console.log('💾 Processed size:', (result.bytes / 1024).toFixed(2), 'KB');
+    console.log('🔗 Cloudinary URL:', result.secure_url);
+    console.log('===== IMAGE UPLOAD COMPLETED =====\n');
+
     next();
-
   } catch (error) {
-    console.error('❌ Upload error:', error);
-    
-    if (req.file && req.file.path && fs.existsSync(req. file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
+    console.error('\n❌ ===== IMAGE UPLOAD ERROR =====');
+    console.error('Error:', error.message);
+    console.error('=====================================\n');
     
     return res.status(500).json({ 
-      message: 'Error uploading image',
+      message: 'Error uploading image to cloud storage',
       details: error.message
     });
   }
