@@ -9,34 +9,32 @@ const processImage = async (req, res, next) => {
 
   try {
     const uploadsDir = path.join(__dirname, '../../uploads');
-    const processedFilename = 'processed-' + Date.now() + path.extname(req.file. originalname);
-    const processedImagePath = path.join(uploadsDir, processedFilename);
     
-    console.log('Processing image:', req.file.path);
-    console.log('Output path:', processedImagePath);
+    // Just move the file, no processing
+    const finalFilename = Date.now() + '-' + req.file.originalname;
+    const finalPath = path. join(uploadsDir, finalFilename);
 
-    // Crop and resize image to 450x350
-    await sharp(req.file.path)
-      .resize(450, 350, {
-        fit: 'cover',
-        position: 'center'
-      })
-      .toFile(processedImagePath);
+    // Simply rename/move the file
+    fs.renameSync(req.file.path, finalPath);
 
-    // Delete original file
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req. file.path);
-    }
+    // Update req.file
+    req.file.path = finalPath;
+    req.file. filename = finalFilename;
 
-    // Update req.file with processed image info
-    req.file.path = processedImagePath;
-    req.file.filename = processedFilename;
-
-    console.log('Image processed successfully:', processedFilename);
+    console.log('✅ Image uploaded:', finalFilename);
     next();
+
   } catch (error) {
-    console.error('Image processing error:', error);
-    return res.status(500).json({ message: 'Error processing image:  ' + error.message });
+    console.error('❌ Upload error:', error);
+    
+    if (req.file && req.file.path && fs.existsSync(req. file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    return res.status(500).json({ 
+      message: 'Error uploading image',
+      details: error.message
+    });
   }
 };
 

@@ -1,10 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const path = require('path');
-
-dotenv.config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config();
 
 const app = express();
 
@@ -12,51 +10,49 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
-app.use('/api/auth', require('./routes/authRoutes')); 
+app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/projects', require('./routes/projectRoutes'));
 app.use('/api/clients', require('./routes/clientRoutes'));
 app.use('/api/contacts', require('./routes/contactRoutes'));
 app.use('/api/newsletter', require('./routes/newsletterRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
-// MongoDB Connection
-const MONGODB_URI = process.env. MONGODB_URI || 'mongodb://localhost:27017/projectmanagement';
-
-console.log('Attempting to connect to MongoDB...');
-console.log('MongoDB URI:', MONGODB_URI);
-
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ MongoDB Connected Successfully'))
-  .catch(err => {
-    console.log('❌ MongoDB Connection Error:', err.message);
-    console.log('Make sure MongoDB is running locally or use MongoDB Atlas');
-  });
-
-// Test Route
+// Root route
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'API is running... ', 
-    endpoints: {
-      projects: '/api/projects',
-      clients: '/api/clients',
-      contacts: '/api/contacts',
-      newsletter: '/api/newsletter',
-      admin: '/api/admin/stats'
-    }
-  });
+  res.json({ message: 'Project Management API' });
 });
+
+// Database connection
+mongoose.connect(process. env.MONGODB_URI)
+  .then(() => {
+    console.log('✅ Connected to MongoDB');
+    
+    // Start server
+    const PORT = process. env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📁 Uploads directory: ${path.join(__dirname, '../uploads')}`);
+      console.log(`🌐 API URL: http://localhost:${PORT}`);
+      console.log(`📸 Image cropping:  Manual (Admin controlled)\n`);
+    });
+  })
+  .catch((error) => {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+  });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong! ', error: err.message });
+  console.error('Server Error:', err);
+  res.status(500).json({ 
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message :  undefined
+  });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+module.exports = app;

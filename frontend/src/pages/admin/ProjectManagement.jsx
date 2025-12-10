@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaMapMarkerAlt, FaCrop } from 'react-icons/fa';
 import { getProjects, createProject, updateProject, deleteProject } from '../../api/api';
+import ImageCropper from '../../components/ImageCropper';
 
 const ProjectManagement = () => {
   const [projects, setProjects] = useState([]);
@@ -16,6 +17,9 @@ const ProjectManagement = () => {
     image: null
   });
   const [imagePreview, setImagePreview] = useState(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [originalImage, setOriginalImage] = useState(null);
+  const [croppedBlob, setCroppedBlob] = useState(null);
 
   useEffect(() => {
     fetchProjects();
@@ -24,7 +28,7 @@ const ProjectManagement = () => {
   const fetchProjects = async () => {
     try {
       const response = await getProjects();
-      setProjects(response. data);
+      setProjects(response.data);
     } catch (error) {
       toast.error('Error fetching projects');
     }
@@ -37,20 +41,46 @@ const ProjectManagement = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData({ ...formData, image: file });
-      setImagePreview(URL.createObjectURL(file));
+      // Show original image for cropping
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setOriginalImage(event.target.result);
+        setShowCropper(true);
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (blob) => {
+    setCroppedBlob(blob);
+    setImagePreview(URL.createObjectURL(blob));
+    setFormData({ ...formData, image: blob });
+    setShowCropper(false);
+    toast.success('Image cropped to 450x350! ');
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setOriginalImage(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (!formData.image && !editMode) {
+      toast.error('Please upload and crop an image');
+      return;
+    }
+
     const data = new FormData();
     data.append('name', formData. name);
     data.append('description', formData.description);
     data.append('location', formData.location);
+    
     if (formData.image) {
-      data.append('image', formData.image);
+      // Create a File object from the blob
+      const file = new File([formData.image], 'cropped-image.jpg', { type: 'image/jpeg' });
+      data.append('image', file);
     }
 
     try {
@@ -64,7 +94,6 @@ const ProjectManagement = () => {
       resetForm();
       fetchProjects();
     } catch (error) {
-      console.error('Submit error:', error);
       toast.error(error.response?.data?.message || 'Error saving project');
     }
   };
@@ -72,12 +101,13 @@ const ProjectManagement = () => {
   const handleEdit = (project) => {
     setCurrentProject(project);
     setFormData({
-      name: project. name,
-      description: project. description,
-      location: project. location || '',
+      name: project.name,
+      description: project.description,
+      location: project.location || '',
       image: null
     });
     setImagePreview(`http://localhost:5000${project.image}`);
+    setCroppedBlob(null);
     setEditMode(true);
     setShowModal(true);
   };
@@ -97,6 +127,8 @@ const ProjectManagement = () => {
   const resetForm = () => {
     setFormData({ name: '', description: '', location:  '', image: null });
     setImagePreview(null);
+    setCroppedBlob(null);
+    setOriginalImage(null);
     setShowModal(false);
     setEditMode(false);
     setCurrentProject(null);
@@ -126,7 +158,7 @@ const ProjectManagement = () => {
 
       {/* Projects Grid */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md: grid-cols-2 lg: grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
             <div key={project._id} className="bg-white rounded-lg shadow-lg overflow-hidden">
               <img
@@ -169,7 +201,7 @@ const ProjectManagement = () => {
         )}
       </main>
 
-      {/* Modal */}
+      {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -200,7 +232,7 @@ const ProjectManagement = () => {
                     onChange={handleInputChange}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Enter project location (e.g., New York, USA)"
+                    placeholder="Enter project location"
                   />
                 </div>
 
@@ -212,26 +244,44 @@ const ProjectManagement = () => {
                     onChange={handleInputChange}
                     required
                     rows="4"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus: border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Enter project description"
                   ></textarea>
                 </div>
                 
                 <div>
-                  <label className="block text-gray-700 font-semibold mb-2">Project Image</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    required={!editMode}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus: ring-2 focus:ring-primary focus:border-transparent"
-                  />
+                  <label className="block text-gray-700 font-semibold mb-2">
+                    Project Image {! editMode && <span className="text-red-500">*</span>}
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary transition">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      required={!editMode}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label htmlFor="image-upload" className="cursor-pointer">
+                      <FaCrop className="mx-auto text-4xl text-gray-400 mb-2" />
+                      <p className="text-gray-600">Click to upload and crop image</p>
+                      <p className="text-sm text-gray-500 mt-1">Will be cropped to 450x350 pixels</p>
+                    </label>
+                  </div>
                   {imagePreview && (
-                    <img src={imagePreview} alt="Preview" className="mt-4 w-full h-48 object-cover rounded-lg" />
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600 mb-2">Preview (450x350):</p>
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-full max-w-md mx-auto rounded-lg border-2 border-green-500"
+                        style={{ width: '450px', height: '350px', objectFit: 'cover' }}
+                      />
+                    </div>
                   )}
                 </div>
                 
-                <div className="flex gap-4">
+                <div className="flex gap-4 pt-4">
                   <button
                     type="submit"
                     className="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-semibold"
@@ -250,6 +300,15 @@ const ProjectManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Image Cropper Modal */}
+      {showCropper && (
+        <ImageCropper
+          imageSrc={originalImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
       )}
     </div>
   );
