@@ -26,7 +26,7 @@ const WhyChooseUs = () => {
       <div className="absolute top-10 right-20 w-20 h-20 bg-blue-500 rounded-full opacity-20"></div>
       <div className="absolute bottom-20 left-10 w-40 h-40 bg-gray-200 rounded-full opacity-30"></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg: px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Title */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-primary mb-4">

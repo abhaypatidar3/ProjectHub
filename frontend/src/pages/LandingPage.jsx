@@ -65,9 +65,13 @@ const LandingPage = () => {
                 className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition"
               >
                 <img 
-                  src={`http://localhost:5000${project.image}`} 
+                  src={project.image} 
                   alt={project.name}
                   className="w-full h-64 object-cover"
+                  onError={(e) => {
+                    console.error('Image load error:', project.image);
+                    e. target.src = 'https://via.placeholder.com/450x350? text=No+Image';
+                  }}
                 />
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-gray-900 mb-2">
@@ -108,9 +112,13 @@ const LandingPage = () => {
                 className="bg-gray-50 rounded-lg p-6 text-center hover:shadow-lg transition"
               >
                 <img 
-                  src={`http://localhost:5000${client.image}`} 
+                  src={client.image} 
                   alt={client.name}
                   className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
+                  onError={(e) => {
+                    console.error('Image load error:', client.image);
+                    e.target.src = 'https://via.placeholder.com/150? text=No+Image';
+                  }}
                 />
                 <p className="text-gray-600 mb-4 italic">
                   "{client.description}"

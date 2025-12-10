@@ -2,8 +2,6 @@ import React from 'react';
 import '../styles/ProjectSection.css';
 
 const ProjectSection = ({ projects }) => {
-  const API_BASE = process.env.REACT_APP_API_URL. replace('/api', '');
-
   return (
     <section id="projects" className="project-section">
       <div className="section-container">
@@ -22,10 +20,11 @@ const ProjectSection = ({ projects }) => {
               <div key={project._id} className="project-card">
                 <div className="project-image">
                   <img 
-                    src={`${API_BASE}${project.image}`} 
+                    src={project.image} 
                     alt={project.name}
                     onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/450x350? text=Project+Image';
+                      console.error('Image load error:', project.image);
+                      e. target.src = 'https://via.placeholder.com/450x350?text=Project+Image';
                     }}
                   />
                 </div>
