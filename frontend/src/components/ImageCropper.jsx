@@ -5,13 +5,12 @@ import { FaTimes, FaCheck } from 'react-icons/fa';
 
 const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
   const [crop, setCrop] = useState({
-    unit: '%',
+    unit:  '%',
     width: 90,
     aspect: 450 / 350  // Maintain 450:350 ratio
   });
   const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
-  const previewCanvasRef = useRef(null);
 
   const onImageLoad = (e) => {
     imgRef.current = e.currentTarget;
@@ -21,18 +20,22 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
     const cropWidth = Math.min(width, height * (450 / 350));
     const cropHeight = cropWidth * (350 / 450);
     
-    setCrop({
+    const initialCrop = {
       unit: 'px',
       width: cropWidth,
-      height: cropHeight,
+      height:  cropHeight,
       x:  (width - cropWidth) / 2,
       y: (height - cropHeight) / 2,
       aspect: 450 / 350
-    });
+    };
+    
+    setCrop(initialCrop);
+    setCompletedCrop(initialCrop); // ✅ Set immediately so button works
   };
 
-  const getCroppedImage = () => {
+  const getCroppedImageBase64 = () => {
     if (!completedCrop || !imgRef.current) {
+      console.error('❌ No completed crop or image ref');
       return null;
     }
 
@@ -57,20 +60,31 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
       350
     );
 
+    // ✅ Convert canvas to base64 using toBlob + FileReader
     return new Promise((resolve) => {
       canvas.toBlob((blob) => {
         if (blob) {
-          blob.name = 'cropped-image.jpg';
-          resolve(blob);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result); // Returns base64 string (data:image/jpeg;base64,...)
+          };
+          reader. readAsDataURL(blob);
+        } else {
+          resolve(null);
         }
       }, 'image/jpeg', 0.9);
     });
   };
 
   const handleCropComplete = async () => {
-    const croppedBlob = await getCroppedImage();
-    if (croppedBlob) {
-      onCropComplete(croppedBlob);
+    console.log('🔄 Starting crop...');
+    const base64Image = await getCroppedImageBase64();
+    
+    if (base64Image) {
+      console.log('✅ Crop complete, base64 length:', base64Image.length);
+      onCropComplete(base64Image); // ✅ Pass base64 string to parent
+    } else {
+      console.error('❌ Failed to generate cropped image');
     }
   };
 
@@ -89,6 +103,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             <button
               onClick={onCancel}
               className="text-gray-500 hover:text-gray-700"
+              aria-label="Close cropper"
             >
               <FaTimes className="text-2xl" />
             </button>
@@ -147,7 +162,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             </button>
             <button
               onClick={onCancel}
-              className="flex-1 bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition flex items-center justify-center gap-2"
+              className="flex-1 bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover: bg-gray-600 transition flex items-center justify-center gap-2"
             >
               <FaTimes /> Cancel
             </button>
