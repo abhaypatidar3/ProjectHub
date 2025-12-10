@@ -8,7 +8,7 @@ const NotAverageSection = () => {
       <div className="absolute bottom-20 left-10 w-32 h-32 bg-gray-100 rounded-full opacity-50"></div>
       <div className="absolute top-1/2 left-20 w-24 h-24 bg-orange-400 rounded-full opacity-60"></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg: px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Side - Text Content */}
           <div className="space-y-6">
@@ -30,7 +30,7 @@ const NotAverageSection = () => {
               <div className="col-span-2 row-span-2">
                 <div className="relative rounded-full overflow-hidden w-64 h-64 mx-auto border-8 border-gray-100 shadow-xl">
                   <img 
-                    src="public/images/3.png" 
+                    src="/images/3.png" 
                     alt="Professional Realtor"
                     className="w-full h-full object-cover"
                   />
@@ -40,9 +40,8 @@ const NotAverageSection = () => {
               {/* Top right circular image */}
               <div className="absolute -top-4 -right-4">
                 <div className="rounded-full overflow-hidden w-40 h-40 border-4 border-white shadow-lg">
-                 
                   <img 
-                    src="public/images/2.png" 
+                    src="/images/2.png" 
                     alt="Happy Clients"
                     className="w-full h-full object-cover"
                   />
@@ -53,7 +52,7 @@ const NotAverageSection = () => {
               <div className="absolute bottom-0 top-[150px] right-0">
                 <div className="rounded-full overflow-hidden w-32 h-32 border-4 border-white shadow-lg">
                   <img 
-                    src="public/images/1.png" 
+                    src="/images/1.png" 
                     alt="Professional Team"
                     className="w-full h-full object-cover"
                   />
