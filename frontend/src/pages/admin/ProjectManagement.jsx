@@ -19,7 +19,7 @@ const ProjectManagement = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [showCropper, setShowCropper] = useState(false);
   const [originalImage, setOriginalImage] = useState(null);
-  const [croppedBlob, setCroppedBlob] = useState(null);
+  const [croppedImageBase64, setCroppedImageBase64] = useState(null); // Store base64 instead of blob
 
   useEffect(() => {
     fetchProjects();
@@ -31,11 +31,12 @@ const ProjectManagement = () => {
       setProjects(response.data);
     } catch (error) {
       toast.error('Error fetching projects');
+      console.error('Fetch error:', error);
     }
   };
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({ ...formData, [e.target.name]:  e.target.value });
   };
 
   const handleImageChange = (e) => {
@@ -44,17 +45,17 @@ const ProjectManagement = () => {
       // Show original image for cropping
       const reader = new FileReader();
       reader.onload = (event) => {
-        setOriginalImage(event.target.result);
+        setOriginalImage(event. target.result);
         setShowCropper(true);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleCropComplete = (blob) => {
-    setCroppedBlob(blob);
-    setImagePreview(URL.createObjectURL(blob));
-    setFormData({ ...formData, image: blob });
+  const handleCropComplete = (base64Image) => {
+    console.log('✅ Received cropped image (base64), length:', base64Image.length);
+    setCroppedImageBase64(base64Image); // Store base64 string
+    setImagePreview(base64Image); // Show preview
     setShowCropper(false);
     toast.success('Image cropped to 450x350! ');
   };
@@ -67,7 +68,7 @@ const ProjectManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.image && !editMode) {
+    if (!croppedImageBase64 && ! editMode) {
       toast.error('Please upload and crop an image');
       return;
     }
@@ -77,10 +78,10 @@ const ProjectManagement = () => {
     data.append('description', formData.description);
     data.append('location', formData.location);
     
-    if (formData.image) {
-      // Create a File object from the blob
-      const file = new File([formData.image], 'cropped-image.jpg', { type: 'image/jpeg' });
-      data.append('image', file);
+    // Send base64 cropped image
+    if (croppedImageBase64) {
+      console.log('📤 Sending cropped image as base64');
+      data.append('croppedImage', croppedImageBase64);
     }
 
     try {
@@ -94,7 +95,8 @@ const ProjectManagement = () => {
       resetForm();
       fetchProjects();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error saving project');
+      console.error('Submit error:', error);
+      toast.error(error.response?.data?. message || 'Error saving project');
     }
   };
 
@@ -106,8 +108,9 @@ const ProjectManagement = () => {
       location: project.location || '',
       image: null
     });
-    setImagePreview(`http://localhost:5000${project.image}`);
-    setCroppedBlob(null);
+    // Show existing image (Cloudinary URL)
+    setImagePreview(project.image); // Now it's a full Cloudinary URL
+    setCroppedImageBase64(null);
     setEditMode(true);
     setShowModal(true);
   };
@@ -125,9 +128,9 @@ const ProjectManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', location:  '', image: null });
+    setFormData({ name: '', description: '', location: '', image: null });
     setImagePreview(null);
-    setCroppedBlob(null);
+    setCroppedImageBase64(null);
     setOriginalImage(null);
     setShowModal(false);
     setEditMode(false);
@@ -162,16 +165,20 @@ const ProjectManagement = () => {
           {projects.map((project) => (
             <div key={project._id} className="bg-white rounded-lg shadow-lg overflow-hidden">
               <img
-                src={`http://localhost:5000${project.image}`}
+                src={project.image} // Now it's a full Cloudinary URL
                 alt={project.name}
                 className="w-full h-48 object-cover"
+                onError={(e) => {
+                  console.error('Image load error:', project.image);
+                  e. target.src = 'https://via.placeholder.com/450x350?text=No+Image';
+                }}
               />
               <div className="p-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{project.name}</h3>
                 {project.location && (
                   <p className="text-sm text-gray-500 mb-2 flex items-center">
                     <FaMapMarkerAlt className="mr-2 text-primary" />
-                    {project. location}
+                    {project.location}
                   </p>
                 )}
                 <p className="text-gray-600 mb-4">{project.description}</p>
@@ -207,7 +214,7 @@ const ProjectManagement = () => {
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-6">
-                {editMode ? 'Edit Project' : 'Add New Project'}
+                {editMode ? 'Edit Project' :  'Add New Project'}
               </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -231,7 +238,7 @@ const ProjectManagement = () => {
                     value={formData.location}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus: ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Enter project location"
                   />
                 </div>
@@ -258,7 +265,6 @@ const ProjectManagement = () => {
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
-                      required={!editMode}
                       className="hidden"
                       id="image-upload"
                     />
@@ -270,13 +276,28 @@ const ProjectManagement = () => {
                   </div>
                   {imagePreview && (
                     <div className="mt-4">
-                      <p className="text-sm text-gray-600 mb-2">Preview (450x350):</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {croppedImageBase64 ? 'Cropped Preview (450x350):' : 'Current Image:'}
+                      </p>
                       <img 
                         src={imagePreview} 
                         alt="Preview" 
                         className="w-full max-w-md mx-auto rounded-lg border-2 border-green-500"
                         style={{ width: '450px', height: '350px', objectFit: 'cover' }}
                       />
+                      {croppedImageBase64 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCroppedImageBase64(null);
+                            setImagePreview(null);
+                            toast.info('Image removed.  Upload a new one.');
+                          }}
+                          className="mt-2 text-sm text-red-600 hover:underline"
+                        >
+                          Remove and upload new image
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -286,7 +307,7 @@ const ProjectManagement = () => {
                     type="submit"
                     className="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-semibold"
                   >
-                    {editMode ?  'Update Project' : 'Create Project'}
+                    {editMode ? 'Update Project' : 'Create Project'}
                   </button>
                   <button
                     type="button"

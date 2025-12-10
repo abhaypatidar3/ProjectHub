@@ -11,7 +11,6 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
   });
   const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
-  const previewCanvasRef = useRef(null);
 
   const onImageLoad = (e) => {
     imgRef.current = e.currentTarget;
@@ -38,7 +37,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
 
     const canvas = document.createElement('canvas');
     const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-    const scaleY = imgRef. current.naturalHeight / imgRef. current.height;
+    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
     
     // Set canvas to exact 450x350
     canvas.width = 450;
@@ -58,19 +57,35 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
     );
 
     return new Promise((resolve) => {
+      // Convert canvas to base64 instead of blob
       canvas.toBlob((blob) => {
         if (blob) {
-          blob.name = 'cropped-image.jpg';
-          resolve(blob);
+          // Convert blob to base64
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({
+              base64: reader.result, // base64 string
+              blob: blob // Keep blob for preview if needed
+            });
+          };
+          reader.readAsDataURL(blob);
+        } else {
+          resolve(null);
         }
       }, 'image/jpeg', 0.9);
     });
   };
 
   const handleCropComplete = async () => {
-    const croppedBlob = await getCroppedImage();
-    if (croppedBlob) {
-      onCropComplete(croppedBlob);
+    console.log('🔄 Starting crop...');
+    const croppedImage = await getCroppedImage();
+    
+    if (croppedImage) {
+      console.log('✅ Crop complete, base64 length:', croppedImage.base64.length);
+      // Pass base64 string to parent
+      onCropComplete(croppedImage.base64);
+    } else {
+      console.error('❌ Failed to crop image');
     }
   };
 
@@ -141,7 +156,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             <button
               onClick={handleCropComplete}
               disabled={!completedCrop}
-              className="flex-1 bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 bg-primary text-white px-6 py-3 rounded-lg font-semibold hover: bg-indigo-700 transition disabled:opacity-50 disabled: cursor-not-allowed flex items-center justify-center gap-2"
             >
               <FaCheck /> Apply Crop
             </button>
