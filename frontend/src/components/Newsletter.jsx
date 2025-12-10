@@ -27,7 +27,7 @@ const Newsletter = () => {
       <section 
         className="relative py-20 bg-cover bg-center"
         style={{
-          backgroundImage: 'url("public/images/subs2.png")',
+          backgroundImage: 'url("images/subs2.png")',
         }}
       >
         {/* Dark overlay */}
