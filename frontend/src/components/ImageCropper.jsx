@@ -5,7 +5,7 @@ import { FaTimes, FaCheck } from 'react-icons/fa';
 
 const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
   const [crop, setCrop] = useState({
-    unit: '%',
+    unit:  '%',
     width: 90,
     aspect: 450 / 350  // Maintain 450:350 ratio
   });
@@ -17,21 +17,25 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
     
     // Set initial crop to center
     const { width, height } = e.currentTarget;
-    const cropWidth = Math.min(width, height * (450 / 350));
+    const cropWidth = Math. min(width, height * (450 / 350));
     const cropHeight = cropWidth * (350 / 450);
     
-    setCrop({
-      unit: 'px',
-      width: cropWidth,
+    const initialCrop = {
+      unit:  'px',
+      width:  cropWidth,
       height: cropHeight,
-      x:  (width - cropWidth) / 2,
+      x: (width - cropWidth) / 2,
       y: (height - cropHeight) / 2,
       aspect: 450 / 350
-    });
+    };
+    
+    setCrop(initialCrop);
+    setCompletedCrop(initialCrop); // ✅ Initialize completedCrop immediately
   };
 
   const getCroppedImage = () => {
     if (!completedCrop || !imgRef.current) {
+      console.error('❌ No crop or image ref');
       return null;
     }
 
@@ -40,16 +44,30 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
     const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
     
     // Set canvas to exact 450x350
-    canvas.width = 450;
+    canvas. width = 450;
     canvas.height = 350;
     const ctx = canvas.getContext('2d');
 
-    ctx.drawImage(
-      imgRef.current,
-      completedCrop.x * scaleX,
-      completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
+    // Handle both percentage and pixel units
+    const cropX = completedCrop.unit === '%' 
+      ? (completedCrop.x / 100) * imgRef.current.width
+      :  completedCrop.x;
+    const cropY = completedCrop.unit === '%' 
+      ? (completedCrop. y / 100) * imgRef.current.height
+      : completedCrop.y;
+    const cropWidth = completedCrop.unit === '%' 
+      ? (completedCrop.width / 100) * imgRef.current.width
+      : completedCrop.width;
+    const cropHeight = completedCrop. unit === '%' 
+      ?  (completedCrop.height / 100) * imgRef.current.height
+      : completedCrop.height;
+
+    ctx. drawImage(
+      imgRef. current,
+      cropX * scaleX,
+      cropY * scaleY,
+      cropWidth * scaleX,
+      cropHeight * scaleY,
       0,
       0,
       450,
@@ -57,16 +75,11 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
     );
 
     return new Promise((resolve) => {
-      // Convert canvas to base64 instead of blob
       canvas.toBlob((blob) => {
         if (blob) {
-          // Convert blob to base64
           const reader = new FileReader();
           reader.onloadend = () => {
-            resolve({
-              base64: reader.result, // base64 string
-              blob: blob // Keep blob for preview if needed
-            });
+            resolve(reader.result); // Return base64 string directly
           };
           reader.readAsDataURL(blob);
         } else {
@@ -78,12 +91,13 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
 
   const handleCropComplete = async () => {
     console.log('🔄 Starting crop...');
-    const croppedImage = await getCroppedImage();
+    console.log('Completed crop:', completedCrop);
     
-    if (croppedImage) {
-      console.log('✅ Crop complete, base64 length:', croppedImage.base64.length);
-      // Pass base64 string to parent
-      onCropComplete(croppedImage.base64);
+    const base64Image = await getCroppedImage();
+    
+    if (base64Image) {
+      console.log('✅ Crop complete, base64 length:', base64Image.length);
+      onCropComplete(base64Image); // Pass base64 string to parent
     } else {
       console.error('❌ Failed to crop image');
     }
@@ -104,6 +118,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             <button
               onClick={onCancel}
               className="text-gray-500 hover:text-gray-700"
+              aria-label="Cancel"
             >
               <FaTimes className="text-2xl" />
             </button>
@@ -114,7 +129,10 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             <ReactCrop
               crop={crop}
               onChange={(c) => setCrop(c)}
-              onComplete={(c) => setCompletedCrop(c)}
+              onComplete={(c) => {
+                console.log('Crop completed:', c);
+                setCompletedCrop(c);
+              }}
               aspect={450 / 350}
               className="max-w-full"
             >
@@ -151,14 +169,29 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             </div>
           </div>
 
+          {/* Debug Info (Remove in production) */}
+          {completedCrop && (
+            <div className="mb-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
+              <strong>Debug: </strong> Crop ready - 
+              x: {completedCrop.x?. toFixed(0)}, 
+              y: {completedCrop.y?.toFixed(0)}, 
+              w: {completedCrop.width?.toFixed(0)}, 
+              h: {completedCrop.height?.toFixed(0)}
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-4">
             <button
               onClick={handleCropComplete}
               disabled={!completedCrop}
-              className="flex-1 bg-primary text-white px-6 py-3 rounded-lg font-semibold hover: bg-indigo-700 transition disabled:opacity-50 disabled: cursor-not-allowed flex items-center justify-center gap-2"
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                completedCrop
+                  ? 'bg-primary text-white hover:bg-indigo-700 cursor-pointer'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
             >
-              <FaCheck /> Apply Crop
+              <FaCheck /> Apply Crop {! completedCrop && '(Adjust crop first)'}
             </button>
             <button
               onClick={onCancel}
