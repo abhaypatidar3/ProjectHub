@@ -13,13 +13,12 @@ const ProjectManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    location: '',
-    image: null
+    location: ''
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [showCropper, setShowCropper] = useState(false);
   const [originalImage, setOriginalImage] = useState(null);
-  const [croppedImageBase64, setCroppedImageBase64] = useState(null); // Store base64 instead of blob
+  const [croppedImageBase64, setCroppedImageBase64] = useState(null);
 
   useEffect(() => {
     fetchProjects();
@@ -42,10 +41,9 @@ const ProjectManagement = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Show original image for cropping
       const reader = new FileReader();
       reader.onload = (event) => {
-        setOriginalImage(event. target.result);
+        setOriginalImage(event.target.result);
         setShowCropper(true);
       };
       reader.readAsDataURL(file);
@@ -53,9 +51,9 @@ const ProjectManagement = () => {
   };
 
   const handleCropComplete = (base64Image) => {
-    console.log('✅ Received cropped image (base64), length:', base64Image.length);
-    setCroppedImageBase64(base64Image); // Store base64 string
-    setImagePreview(base64Image); // Show preview
+    console.log('✅ Received cropped image (base64), length:', base64Image. length);
+    setCroppedImageBase64(base64Image);
+    setImagePreview(base64Image);
     setShowCropper(false);
     toast.success('Image cropped to 450x350! ');
   };
@@ -74,11 +72,10 @@ const ProjectManagement = () => {
     }
 
     const data = new FormData();
-    data.append('name', formData. name);
+    data.append('name', formData.name);
     data.append('description', formData.description);
     data.append('location', formData.location);
     
-    // Send base64 cropped image
     if (croppedImageBase64) {
       console.log('📤 Sending cropped image as base64');
       data.append('croppedImage', croppedImageBase64);
@@ -96,20 +93,18 @@ const ProjectManagement = () => {
       fetchProjects();
     } catch (error) {
       console.error('Submit error:', error);
-      toast.error(error.response?.data?. message || 'Error saving project');
+      toast.error(error.response?.data?.message || 'Error saving project');
     }
   };
 
   const handleEdit = (project) => {
     setCurrentProject(project);
     setFormData({
-      name: project.name,
-      description: project.description,
-      location: project.location || '',
-      image: null
+      name: project. name,
+      description: project. description,
+      location: project. location || ''
     });
-    // Show existing image (Cloudinary URL)
-    setImagePreview(project.image); // Now it's a full Cloudinary URL
+    setImagePreview(project.image);
     setCroppedImageBase64(null);
     setEditMode(true);
     setShowModal(true);
@@ -128,7 +123,7 @@ const ProjectManagement = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', location: '', image: null });
+    setFormData({ name: '', description: '', location: '' });
     setImagePreview(null);
     setCroppedImageBase64(null);
     setOriginalImage(null);
@@ -160,25 +155,25 @@ const ProjectManagement = () => {
       </header>
 
       {/* Projects Grid */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm: px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
             <div key={project._id} className="bg-white rounded-lg shadow-lg overflow-hidden">
               <img
-                src={project.image} // Now it's a full Cloudinary URL
+                src={project.image}
                 alt={project.name}
                 className="w-full h-48 object-cover"
                 onError={(e) => {
                   console.error('Image load error:', project.image);
-                  e. target.src = 'https://via.placeholder.com/450x350?text=No+Image';
+                  e.target.src = 'https://via.placeholder.com/450x350?text=No+Image';
                 }}
               />
               <div className="p-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{project.name}</h3>
-                {project.location && (
+                {project. location && (
                   <p className="text-sm text-gray-500 mb-2 flex items-center">
                     <FaMapMarkerAlt className="mr-2 text-primary" />
-                    {project.location}
+                    {project. location}
                   </p>
                 )}
                 <p className="text-gray-600 mb-4">{project.description}</p>
